@@ -30,7 +30,7 @@ const routes: Array<RouteRecordRaw> = [
     // 登录
     path: '/setting',
     name: 'setting',
-    component: () => import(/* webpackChunkName: "about" */ '../views/SettingView.vue')
+    component: () => import(/* webpackChunkName: "about" */ '../views/SettingViewTemp.vue')
   },
   {
     // 工作空间主页
