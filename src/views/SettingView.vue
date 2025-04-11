@@ -4,10 +4,43 @@
     <header class="main-header">
       <nav class="nav-container">
         <!-- 左侧Logo -->
-        <div class="logo">
-          <span class="logo-main">匠模</span>
-          <span class="logo-sub">久</span>
-        </div>
+        <router-link
+            to="/main"
+            class="logo"
+            @mouseenter="logoHover = true"
+            @mouseleave="logoHover = false"
+        >
+
+          <span
+              class="logo-text"
+              :style="{ color: logoHover ? '#000000' : '#2c254a' }"
+          >
+              匠模
+            </span>
+
+          <img
+              src="@/assets/jiu.jpg"
+              alt="Logo"
+              class="logo-image"
+              :style="{ filter: logoHover ? 'brightness(1.1)' : 'none' }"
+          >
+        </router-link>
+<!--        <router-link
+            to="/main"
+            class="logo"
+            @mouseenter="logoHover = true"
+            @mouseleave="logoHover = false"
+        >
+          <span
+              class="logo-main"
+              :style="{ color: logoHover ? '#4a6cd4' : '#285dc1' }"
+          >匠模</span>
+          <span
+              class="logo-sub"
+              :style="{ color: logoHover ? '#ff4d4f' : '#ea1123' }"
+          >久</span>
+        </router-link>-->
+
 
         <!-- 中间导航菜单 -->
         <div class="nav-center">
@@ -46,28 +79,52 @@
         <div class="card-header">
           <h3>基本信息</h3>
           <div class="header-right">
-            <el-button type="link">编辑</el-button>
+            <!-- 按钮布局 -->
+            <div v-if="editStates.base" class="edit-buttons">
+              <el-button
+                  plain
+                  @click="saveUserInfo"
+                  class="save-btn"
+              >
+                保存
+              </el-button>
+              <el-button
+                  plain
+                  @click="toggleEdit('base')"
+                  class="cancel-btn"
+              >
+                取消
+              </el-button>
+            </div>
+            <el-button
+                v-else
+                @click="toggleEdit('base')"
+            >
+              编辑
+            </el-button>
           </div>
         </div>
         <div class="info-grid">
-          <div class="info-item">
-            <label>昵称</label>
-            <div class="info-content">PO_5E2D53</div>
-          </div>
-          <div class="info-item">
-            <label>行业</label>
-            <div class="info-content">无</div>
-          </div>
-          <div class="info-item">
-            <label>公司</label>
-            <div class="info-content">无</div>
-          </div>
-          <div class="info-item">
-            <label>职业（学历）</label>
-            <div class="info-content">无</div>
+          <div class="info-item" v-for="field in baseFields" :key="field.key">
+            <label>{{ field.label }}</label>
+            <!-- 编辑模式显示输入框 -->
+            <el-input
+                v-if="editStates.base"
+                v-model="userInfo[field.key]"
+                :placeholder="field.placeholder"
+                class="info-input"
+                clearable
+                maxlength="10"
+            />
+            <!-- 非编辑模式显示文本 -->
+            <div v-else class="info-content">
+              {{ userInfo[field.key] || field.default }}
+            </div>
           </div>
         </div>
+
       </el-card>
+
 
       <!-- 账号权益 -->
       <el-card class="section">
@@ -84,15 +141,15 @@
         <h3>账号安全</h3>
         <div class="security-item">
           <span>手机号：</span>
-          <el-button type="link">暂未绑定 立即绑定</el-button>
+          <el-button >暂未绑定 立即绑定</el-button>
         </div>
         <div class="security-item">
           <span>邮箱号：</span>
-          <el-button type="link">暂未绑定 立即绑定</el-button>
+          <el-button >暂未绑定 立即绑定</el-button>
         </div>
         <div class="security-item">
           <span>密码：</span>
-          <el-button type="link">暂未设定 立即设定</el-button>
+          <el-button >暂未设定 立即设定</el-button>
         </div>
         <div class="social-bindings">
           <el-button v-for="social in ['微信', 'QQ', '微博', '腾讯会议']" :key="social" circle>
@@ -142,6 +199,34 @@
 <script setup>
 import { ref } from 'vue'
 import { Bell } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+const logoHover = ref(false)
+
+// 用户数据
+const userInfo = reactive({
+  nickname: '',
+  industry: '',
+  company: '',
+  profession: ''
+})
+// 原始数据存储(修改前)
+const originalData = reactive({})
+
+// 编辑状态管理
+const editStates = reactive({
+  base: false,
+  security: false,
+  device: false
+})
+
+// 字段配置
+const baseFields = [
+  { key: 'nickname', label: '昵称', placeholder: '请输入昵称', default: 'PO_5E2D53' },
+  { key: 'industry', label: '行业', placeholder: '请选择行业', default: '无' },
+  { key: 'company', label: '公司', placeholder: '请输入公司名称', default: '无' },
+  { key: 'profession', label: '职业（学历）', placeholder: '请输入职业信息', default: '无' }
+]
+
 const devices = ref([
   {
     id: 1,
@@ -156,6 +241,136 @@ const devices = ref([
     current: false
   }
 ])
+
+// 重置字段
+const resetFields = (type) => {
+  if (type === 'base') {
+    // 还原到原始数据
+    Object.keys(userInfo).forEach(key => {
+      userInfo[key] = originalData[key]
+    })
+  }
+}
+
+// 获取用户信息
+const fetchUserInfo = async () => {
+  try {
+    // 模拟API返回数据
+    const mockData = {
+      nickname: 'PO_5E2D53',
+      industry: '互联网',
+      company: '匠模科技',
+      profession: '前端工程师'
+    }
+    // const { data } = await axios.get('/api/user/info')
+    // 保存原始数据
+    Object.assign(originalData, mockData)
+    Object.assign(userInfo, mockData)
+  } catch (error) {
+    ElMessage.error('获取用户信息失败')
+  }
+}
+
+// 保存用户信息
+const saveUserInfo = async () => {
+  try {
+    // 先显示确认对话框
+    await ElMessageBox.confirm('确定要保存修改吗？', '确认保存', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    // 用户确认后执行保存
+    // await axios.put('/api/user/info', userInfo)
+    ElMessage.success('信息更新成功')
+    editStates.base = false
+
+  } catch (error) {
+    // 用户点击取消或保存出错
+    if (error !== 'cancel') {
+      ElMessage.error('保存失败，请重试')
+    }
+  }
+}
+
+
+const toggleEdit = (type) => {
+  if (editStates[type]) {
+    // 检查是否有修改
+    const hasChanges = Object.keys(userInfo).some(
+        key => userInfo[key] !== originalData[key]
+    )
+
+    if (hasChanges) {
+      ElMessageBox.confirm('有未保存的修改，是否放弃？', '提示', {
+        confirmButtonText: '放弃',
+        cancelButtonText: '继续编辑',
+        type: 'warning'
+      }).then(() => {
+        resetFields(type)
+        editStates[type] = false
+      }).catch(() => {
+        // 用户选择继续编辑，不做任何操作
+      })
+    } else {
+      editStates[type] = false // 没有修改直接退出编辑
+    }
+  } else {
+    Object.assign(originalData, userInfo)
+    editStates[type] = true
+  }
+}
+// 初始化获取数据
+onMounted(fetchUserInfo)
+/*
+const toggleEdit = (type) => {
+  // 退出编辑模式
+  if (editStates[type]) {
+    // 检查是否有修改
+    const hasChanges = Object.keys(userInfo).some(
+        key => userInfo[key] !== originalData[key]
+    )
+
+    if (hasChanges) {
+      ElMessageBox.confirm('是否保存修改？', '提示', {
+        confirmButtonText: '保存',
+        cancelButtonText: '不保存',
+        type: 'warning'
+      }).then(() => {
+        saveUserInfo() // 用户选择保存
+      }).catch(() => {
+        resetFields(type) // 用户选择不保存
+        editStates[type] = false
+      })
+    } else {
+      editStates[type] = false // 没有修改直接退出编辑
+    }
+  }
+  // 进入编辑模式
+  else {
+    Object.assign(originalData, userInfo) // 保存当前状态作为原始数据
+    editStates[type] = true
+  }
+}*/
+
+/*const toggleEdit = (type) => {
+  if (editStates[type]) {
+    ElMessageBox.confirm('确认放弃修改？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      resetFields(type)
+      editStates[type] = false
+    }).catch(() => {
+      // 点击取消时保持编辑状态
+    })
+  } else {
+    // 进入编辑模式时保存当前状态
+    Object.assign(originalData, userInfo)
+    editStates[type] = true
+  }
+}*/
 </script>
 
 <style scoped>
@@ -185,6 +400,41 @@ const devices = ref([
   align-items: baseline;
   position: absolute;
   left: 30px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  text-decoration: none; /* 移除router-link默认下划线 */
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+/* 文字样式 */
+.logo-text {
+  font-size: 29px !important;
+  font-weight: 800;
+  margin-right: 3px;
+  transition: color 0.2s ease;
+
+}
+
+/* 图片样式调整 */
+.logo-image {
+  max-height: 60%; /* 28px左右 */
+  width: 34px;
+  padding-left: 2px;
+  transition: transform 0.2s ease;
+  position: relative;
+  top: 4px;
+}
+
+/* Hover效果整合 */
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.logo:hover .logo-image {
+  transform: translateY(2px) rotate(-5deg); /* 保持原有旋转效果 */
 }
 
 .logo-main {
@@ -275,6 +525,8 @@ const devices = ref([
   }
 }
 
+
+
 /* 调整通知徽标位置 */
 :deep(.el-badge__content) {
   top: 2px;
@@ -361,6 +613,43 @@ const devices = ref([
   min-width: 100px;
 }
 
+/*编辑相关样式*/
+.action-bar {
+  margin-top: 20px;
+  text-align: right;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.info-item .el-input {
+  width: 220px;
+}
+
+/* 信息展示网格布局 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+/* 输入框样式 */
+.info-input {
+  width: 220px;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  &:focus {
+    outline: none;
+    border-color: #673ab7;
+  }
+}
+
 /* 账号安全 */
 .security-item {
   padding: 12px 0;
@@ -382,6 +671,54 @@ const devices = ref([
 .social-bindings .el-button {
   width: 40px;
   height: 40px;
+}
+
+.header-right {
+  position: relative;
+}
+
+.edit-buttons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.save-btn {
+  order: 1;
+  margin-right: 5px; /* 控制间距 */
+  color: #409eff !important; /* 蓝色强调色 */
+}
+
+.cancel-btn {
+  order: 2;
+  color: #909399 !important; /* 灰色弱化 */
+}
+
+/* 调整按钮悬停效果 */
+.save-btn:hover {
+  color: #66b1ff !important;
+}
+/* 保存按钮加载状态 */
+.save-btn.is-loading {
+  position: relative;
+  padding-right: 32px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.cancel-btn:hover {
+  color: #a6a9ad !important;
 }
 
 /* 设备管理 */
